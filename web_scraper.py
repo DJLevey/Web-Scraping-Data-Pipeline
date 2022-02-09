@@ -1,13 +1,14 @@
 from selenium import webdriver
-# import pandas as pd
+from selenium.webdriver.chrome.options import Options
 import time
 
 
 class Scraper:
-    def __init__(self):
+    def __init__(self, URL):
         self.driver = webdriver.Chrome()
-        URL = ('https://racing.hkjc.com/racing/information/'
-               'English/Racing/LocalResults.aspx?RaceDate=2022/02/06')
+        chrome_options = Options()
+        chrome_options.add_argument("--headless")
+        self.driver = webdriver.Chrome(options=chrome_options)
         self.driver.get(URL)
         time.sleep(2)
 
@@ -24,5 +25,7 @@ class Scraper:
 
 
 if __name__ == '__main__':
-    scr = Scraper()
-    scr.get_runners()
+    URL = ('https://racing.hkjc.com/racing/information/'
+           'English/Racing/LocalResults.aspx?RaceDate=2022/02/06')
+    scr = Scraper(URL)
+    print(scr.get_runners())
