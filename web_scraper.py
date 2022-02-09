@@ -1,6 +1,7 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import time
+import datetime
 
 
 class Scraper:
@@ -11,6 +12,10 @@ class Scraper:
         self.driver = webdriver.Chrome(options=chrome_options)
         self.driver.get(URL)
         time.sleep(2)
+
+    def date_list(self, days):
+        today = datetime.datetime.today()
+        return [today - datetime.timedelta(days=x) for x in range(days)]
 
     def get_runners(self):
         runners = self.driver.find_elements_by_xpath(
@@ -28,4 +33,5 @@ if __name__ == '__main__':
     URL = ('https://racing.hkjc.com/racing/information/'
            'English/Racing/LocalResults.aspx?RaceDate=2022/02/06')
     scr = Scraper(URL)
-    print(scr.get_runners())
+    print(scr.date_list(10))
+    scr.get_runners()
