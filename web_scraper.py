@@ -6,9 +6,7 @@ import datetime
 
 class Scraper:
     def __init__(self, URL):
-        self.driver = webdriver.Chrome()
-        chrome_options = Options()
-        chrome_options.add_argument("--headless")
+        chrome_options = Options().add_argument("--headless")
         self.driver = webdriver.Chrome(options=chrome_options)
         self.driver.get(URL)
         time.sleep(2)
