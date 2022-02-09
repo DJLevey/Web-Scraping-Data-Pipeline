@@ -15,10 +15,12 @@ class Scraper:
         runners = self.driver.find_elements_by_xpath(
             '//table/tbody[@class="f_fs12"]/tr/td[3]'
         )
+        links = []
         for horse in runners:
             a_tag = horse.find_element_by_tag_name('a')
             link = a_tag.get_attribute('href')
-            print(horse.text[:-6], '  ', link)
+            links.append(link)
+        return links
 
 
 if __name__ == '__main__':
