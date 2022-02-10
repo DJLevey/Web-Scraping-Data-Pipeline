@@ -6,10 +6,9 @@ import datetime
 
 class Scraper:
     def __init__(self, URL):
-        chrome_options = Options().add_argument("--headless")
-        self.driver = webdriver.Chrome(options=chrome_options)
-        self.driver.get(URL)
-        time.sleep(2)
+        self._chrome_options = Options().add_argument("--headless")
+        self.driver = webdriver.Chrome(options=self._chrome_options)
+        self.navigate_pages()
 
     def date_list(self, days):
         today = datetime.datetime.today()
@@ -30,7 +29,8 @@ class Scraper:
 
     def get_card_races(self):
         races = self.driver.find_elements_by_xpath(
-            '//table[@class="f_fs12 f_fr js_racecard"]/tbody/tr/td/a'
+            '//table[@class="f_fs12 f_fr js_racecard"]'
+            '/tbody/tr/td[position()<last()]/a'
         )
         links = [race.get_attribute('href') for race in races]
         return links
@@ -39,21 +39,33 @@ class Scraper:
         runners = self.driver.find_elements_by_xpath(
             '//table/tbody[@class="f_fs12"]/tr/td[3]/a'
         )
-        links = [horse.get_attribute('href') for horse in runners]
+        links = {horse.get_attribute('href') for horse in runners}
         return links
 
+    def if_event(self):
+        event = self.driver.find_elements_by_xpath(
+            '//div[@id="errorContainer"]'
+        )
+        return bool(event)
+
     def navigate_pages(self):
-        links_by_date = self.create_date_links(5)
-        horse_links = {}
+        links_by_date = self.create_date_links(2)
+        horse_links = set()
         for link in links_by_date:
             self.driver.get(link)
             time.sleep(3)
+            print(f'Accessed {link}')
+            if self.if_event():
+                print('No Event.')
+                continue
             card_races = self.get_card_races()
-            horse_links.update(self.get_runners())
+            horse_links = horse_links.union(self.get_runners())
+            print(horse_links)
             for race_link in card_races:
                 self.driver.get(race_link)
+                print(f'Accessed {race_link}')
                 time.sleep(2)
-                horse_links.update(self.get_runners())
+                horse_links.union(self.get_runners())
         return True
 
 
