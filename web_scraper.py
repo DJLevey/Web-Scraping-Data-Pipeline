@@ -23,7 +23,7 @@ class Scraper:
             year = str(date.year)
             month = str(date.month).zfill(2)
             day = str(date.day).zfill(2)
-            link = base_url+year+'/'+month+'/'+day
+            link = f'{base_url}{year}/{month}/{day}'
             date_links.append(link)
         return date_links
 
