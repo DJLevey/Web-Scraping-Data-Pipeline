@@ -15,11 +15,12 @@ class Scraper:
         today = datetime.datetime.today()
         return [today - datetime.timedelta(days=x) for x in range(days)]
 
-    def create_date_links(self, date_list):
+    def create_date_links(self, days):
         base_url = ('https://racing.hkjc.com/racing/information/'
                     'English/Racing/LocalResults.aspx?RaceDate=')
         date_links = []
-        for date in date_list:
+        dates = self.date_list(days)
+        for date in dates:
             year = str(date.year)
             month = str(date.month).zfill(2)
             day = str(date.day).zfill(2)
@@ -41,11 +42,22 @@ class Scraper:
         links = [horse.get_attribute('href') for horse in runners]
         return links
 
+    def navigate_pages(self):
+        links_by_date = self.create_date_links(5)
+        horse_links = {}
+        for link in links_by_date:
+            self.driver.get(link)
+            time.sleep(3)
+            card_races = self.get_card_races()
+            horse_links.update(self.get_runners())
+            for race_link in card_races:
+                self.driver.get(race_link)
+                time.sleep(2)
+                horse_links.update(self.get_runners())
+        return True
+
 
 if __name__ == '__main__':
     URL = ('https://racing.hkjc.com/racing/information/'
            'English/Racing/LocalResults.aspx?RaceDate=2022/02/06')
     scr = Scraper(URL)
-    scr.get_card_races()
-    print(scr.create_date_links(scr.date_list(10))[2])
-    scr.get_runners()
