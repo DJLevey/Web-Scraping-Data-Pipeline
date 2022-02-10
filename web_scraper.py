@@ -27,15 +27,18 @@ class Scraper:
             date_links.append(link)
         return date_links
 
+    def get_card_races(self):
+        races = self.driver.find_elements_by_xpath(
+            '//table[@class="f_fs12 f_fr js_racecard"]/tbody/tr/td/a'
+        )
+        links = [race.get_attribute('href') for race in races]
+        return links
+
     def get_runners(self):
         runners = self.driver.find_elements_by_xpath(
-            '//table/tbody[@class="f_fs12"]/tr/td[3]'
+            '//table/tbody[@class="f_fs12"]/tr/td[3]/a'
         )
-        links = []
-        for horse in runners:
-            a_tag = horse.find_element_by_tag_name('a')
-            link = a_tag.get_attribute('href')
-            links.append(link)
+        links = [horse.get_attribute('href') for horse in runners]
         return links
 
 
@@ -43,5 +46,6 @@ if __name__ == '__main__':
     URL = ('https://racing.hkjc.com/racing/information/'
            'English/Racing/LocalResults.aspx?RaceDate=2022/02/06')
     scr = Scraper(URL)
-    print(scr.create_date_links(scr.date_list(10))[3])
+    scr.get_card_races()
+    print(scr.create_date_links(scr.date_list(10))[2])
     scr.get_runners()
