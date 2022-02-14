@@ -6,9 +6,28 @@ import datetime
 
 class Scraper:
     def __init__(self, URL):
-        self._chrome_options = Options().add_argument("--headless")
-        self.driver = webdriver.Chrome(options=self._chrome_options)
-        self.navigate_pages()
+        self.chrome_options = Options().add_argument("--headless")
+        self.driver = webdriver.Chrome(options=self.chrome_options)
+
+    def navigate_pages(self, days):
+        links_by_date = self.create_date_links(days)
+        horse_links = set()
+        for link in links_by_date:
+            self.driver.get(link)
+            time.sleep(3)
+            print(f'Accessed {link}')
+            if self.if_event():
+                print('No Event.')
+                continue
+            card_races = self.get_card_races()
+            horse_links = horse_links.union(self.get_runners())
+            for race_link in card_races:
+                self.driver.get(race_link)
+                print(f'Accessed {race_link}')
+                time.sleep(2)
+                horse_links = horse_links.union(self.get_runners())
+            print(len(horse_links))
+        return True
 
     def date_list(self, days):
         today = datetime.datetime.today()
@@ -48,28 +67,9 @@ class Scraper:
         )
         return bool(event)
 
-    def navigate_pages(self):
-        links_by_date = self.create_date_links(2)
-        horse_links = set()
-        for link in links_by_date:
-            self.driver.get(link)
-            time.sleep(3)
-            print(f'Accessed {link}')
-            if self.if_event():
-                print('No Event.')
-                continue
-            card_races = self.get_card_races()
-            horse_links = horse_links.union(self.get_runners())
-            print(horse_links)
-            for race_link in card_races:
-                self.driver.get(race_link)
-                print(f'Accessed {race_link}')
-                time.sleep(2)
-                horse_links.union(self.get_runners())
-        return True
-
 
 if __name__ == '__main__':
     URL = ('https://racing.hkjc.com/racing/information/'
            'English/Racing/LocalResults.aspx?RaceDate=2022/02/06')
     scr = Scraper(URL)
+    scr.navigate_pages(3)
