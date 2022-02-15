@@ -109,15 +109,19 @@ class Scraper:
         return [today - datetime.timedelta(days=x) for x in range(days)]
 
     def __save_data(self, data: dict):
-        data_id = data['id']
-        print(data_id)
-        folder = f'raw_data/{data_id}'
-        print(folder)
+        folder = os.path.join('Web-Scraping-Data-Pipeline',
+                              'raw_data', data['id'])
         if not os.path.exists(folder):
-            print('cat')
             os.makedirs(folder)
-        with open(f'{folder}/data.json', 'w') as f:
+        with open(os.path.join(folder, 'data.json'), 'w') as f:
             json.dump(data, f, indent=4)
+
+    def __save_image(self, link, id):
+        folder = os.path.join('Web-Scraping-Data-Pipeline',
+                              'raw_data', id)
+        self.driver.get(link)
+        
+        return
 
 
 if __name__ == '__main__':
