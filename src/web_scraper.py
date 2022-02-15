@@ -5,6 +5,8 @@ import time
 import datetime
 import os
 import json
+import urllib
+import urllib.request
 from uuid import uuid4
 
 
@@ -23,16 +25,17 @@ class Scraper:
             if self.if_event():
                 print(f'No Event on {link}')
                 continue
-            self.scrape_page(link)
             card_races = self.get_card_races()
+            self.scrape_page(link)
             for race_link in card_races:
                 self.scrape_page(race_link)
-        return True
+        return
 
     def scrape_page(self, link):
         scraped_json = {'uuid': str(uuid4())}
         if self.driver.current_url != link:
             self.driver.get(link)
+            print(f'Accessed {link}')
             time.sleep(3)
         scraped_json['image_link'] = self.get_image_link()
         scraped_json['id'] = scraped_json['image_link'][-16:-6]
@@ -50,8 +53,7 @@ class Scraper:
 
     def get_card_races(self):
         races = self.driver.find_elements_by_xpath(
-            '//table[@class="f_fs12 f_fr js_racecard"]'
-            '/tbody/tr/td[position()<last()]/a'
+            '/html/body/div/div[2]/table/tbody/tr/td[position()<last()]/a'
         )
         links = [race.get_attribute('href') for race in races]
         return links
@@ -115,12 +117,19 @@ class Scraper:
             os.makedirs(folder)
         with open(os.path.join(folder, 'data.json'), 'w') as f:
             json.dump(data, f, indent=4)
+        self.__save_image(data['image_link'], data['id'])
+        return
 
     def __save_image(self, link, id):
         folder = os.path.join('Web-Scraping-Data-Pipeline',
                               'raw_data', id)
         self.driver.get(link)
-        
+        time.sleep(2)
+        img = self.driver.find_element_by_xpath(
+            '/html/body/img'
+        ).get_attribute('src')
+        urllib.request.urlretrieve(img, os.path.join(folder, '1.jpg'))
+        print(f'Saved image {id}')
         return
 
 
