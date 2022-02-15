@@ -37,6 +37,7 @@ class Scraper:
             self.driver.get(link)
             print(f'Accessed {link}')
             time.sleep(3)
+        self.scrape_race_data()
         scraped_json['image_link'] = self.get_image_link()
         scraped_json['id'] = scraped_json['image_link'][-16:-6]
         scraped_json['runners'] = self.runner_dict()
@@ -58,6 +59,14 @@ class Scraper:
         links = [race.get_attribute('href') for race in races]
         return links
 
+    def scrape_race_data(self):
+        data = self.driver.find_elements_by_xpath(
+            '/html/body/div/div[4]/table/tbody/tr/td'
+        )
+        for i in data:
+            print(i.text)
+        return
+
     def runner_dict(self):
         table = self.get_runner_table()
         dict_runners = {'Place': table[0],
@@ -71,7 +80,8 @@ class Scraper:
                         'Length Behind Winner': table[8],
                         'Running Positions': table[9],
                         'Finish Time': table[10],
-                        'Win Odds': table[11]}
+                        'Win Odds': table[11],
+                        'Links': self.get_runner_links()}
         return dict_runners
 
     def get_runner_table(self):
@@ -89,7 +99,7 @@ class Scraper:
         runners = self.driver.find_elements_by_xpath(
             '//table/tbody[@class="f_fs12"]/tr/td[3]/a'
         )
-        links = {horse.get_attribute('href') for horse in runners}
+        links = [horse.get_attribute('href') for horse in runners]
         return links
 
     def get_image_link(self):
