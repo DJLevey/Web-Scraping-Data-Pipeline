@@ -41,14 +41,10 @@ class Scraper:
     def create_date_links(self, days):
         base_url = ('https://racing.hkjc.com/racing/information/'
                     'English/Racing/LocalResults.aspx?RaceDate=')
-        date_links = []
         dates = self.date_list(days)
-        for date in dates:
-            year = str(date.year)
-            month = str(date.month).zfill(2)
-            day = str(date.day).zfill(2)
-            link = f'{base_url}{year}/{month}/{day}'
-            date_links.append(link)
+        date_links = [f'{base_url}{str(date.year)}/'
+                      f'{str(date.month).zfill(2)}/'
+                      f'{str(date.day).zfill(2)}' for date in dates]
         return date_links
 
     def get_card_races(self):
