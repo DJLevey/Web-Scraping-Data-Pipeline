@@ -13,26 +13,22 @@ class Scraper:
         self.driver = webdriver.Chrome(options=self.chrome_options)
         self.horse_links = set()
 
-    def navigate_pages(self, days: int):
-        links_by_date = self.create_date_links(days)
-        for link in links_by_date:
+    def scrape_dates(self, links: list):
+        for link in links:
             self.driver.get(link)
             time.sleep(3)
             print(f'Accessed {link}')
             if self.if_event():
-                print('No Event.')
+                print(f'No Event on {link}')
                 continue
             card_races = self.get_card_races()
-            print(self.get_runner_table())
-            self.horse_links = self.horse_links.union(self.get_runner_links())
             for race_link in card_races:
                 self.driver.get(race_link)
-                print(f'Accessed {race_link}')
-                time.sleep(2)
-                self.horse_links = self.horse_links.union(
-                    self.get_runner_links())
-                self.get_runner_table()
-        return
+        return True
+
+    def scrape_page(self, link):
+        if self.driver.current_url != link:
+            self.driver.get(link)
 
     def date_list(self, days: int):
         today = datetime.datetime.today()
@@ -73,6 +69,16 @@ class Scraper:
         links = {horse.get_attribute('href') for horse in runners}
         return links
 
+    def get_image_link(self, link):
+        self.driver.get(link)
+        time.sleep(2)
+        img_link = self.driver.find_element_by_xpath(
+            '/html/body/div/div[6]/div[2]/div[1]/div/a/img'
+        ).get_attribute('src')
+        i = list(img_link)
+        i[-5] = 'L'
+        return ''.join(i)
+
     def if_event(self):
         event = self.driver.find_elements_by_xpath(
             '//div[@id="errorContainer"]'
@@ -84,4 +90,5 @@ if __name__ == '__main__':
     URL = ('https://racing.hkjc.com/racing/information/English/Racing'
            '/LocalResults.aspx?RaceDate=2022/02/12&Racecourse=ST&RaceNo=2')
     scr = Scraper()
-    scr.navigate_pages(4)
+    print(scr.get_image_link(URL))
+    # scr.navigate_pages(4)
