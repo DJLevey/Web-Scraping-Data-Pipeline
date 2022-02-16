@@ -121,7 +121,7 @@ class Scraper:
         return bool(event)
 
     def __create_date_list(self, days: int):
-        start = datetime.datetime.start() - datetime.timedelta(days=1)
+        start = datetime.datetime.today() - datetime.timedelta(days=1)
         return [start - datetime.timedelta(days=x) for x in range(days)]
 
     def __save_data(self, data: dict):
