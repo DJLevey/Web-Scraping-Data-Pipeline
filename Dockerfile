@@ -1,7 +1,7 @@
 FROM python:3.8-slim-buster
 
-ADD web_scraper.py .
+ADD . .
 
 RUN pip install -r requirements.txt
 
-CMD [ "python", "./main.py" ]
+CMD [ "python", "scraper/__main__.py" ]
