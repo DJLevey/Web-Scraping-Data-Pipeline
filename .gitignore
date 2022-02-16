@@ -1,2 +1,4 @@
 # ignore raw_data
 /raw_data
+
+.dockerignore
