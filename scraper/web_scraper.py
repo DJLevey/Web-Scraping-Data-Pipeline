@@ -7,38 +7,42 @@ import os
 import json
 import urllib
 import urllib.request
+import urllib.error
 from uuid import uuid4
 
 
 class Scraper:
     def __init__(self):
         self.chrome_options = Options()
-        self.chrome_options.headless = True
+        # self.chrome_options.headless = True
         self.driver = webdriver.Chrome(options=self.chrome_options)
 
     def scrape_dates(self, links: list):
         for link in links:
             self.driver.get(link)
-            time.sleep(3)
+            time.sleep(2)
             print(f'Accessed {link}')
-            if self.__if_event():
+            if self.__if_event(link):
                 print(f'No Event on {link}')
                 continue
             card_races = self.get_card_races()
             self.scrape_page(link)
             for race_link in card_races:
+                while True:
+                    self.driver.get(race_link)
+                    print(f'Accessed {race_link}')
+                    time.sleep(2)
+                    if not self.__if_event(race_link):
+                        break
+                    print(f'No Event loaded {race_link}')
                 self.scrape_page(race_link)
         return
 
     def scrape_page(self, link):
         scraped_json = {'uuid': str(uuid4())}
-        if self.driver.current_url != link:
-            self.driver.get(link)
-            print(f'Accessed {link}')
-            time.sleep(3)
-        self.race_dict()
+        scraped_json.update(self.generate_id())
+        scraped_json.update(self.race_dict())
         scraped_json['image_link'] = self.get_image_link()
-        scraped_json['id'] = scraped_json['image_link'][-16:-6]
         scraped_json['runners'] = self.runner_dict()
         self.__save_data(scraped_json)
 
@@ -51,6 +55,17 @@ class Scraper:
                       f'{str(date.day).zfill(2)}' for date in dates]
         return date_links
 
+    def generate_id(self):
+        date = self.driver.find_element_by_xpath(
+            '/html/body/div/div[3]/p[1]/span[1]'
+        ).text.split('  ')[1].replace('/', '-')
+        race_number = self.driver.find_element_by_xpath(
+            '/html/body/div/div[4]/table/thead/tr/td[1]'
+        ).text.split(' ')[1]
+        id = f'{date}-{race_number}'
+        race_dict = {'id': id, 'date': date, 'race_number': race_number}
+        return race_dict
+
     def get_card_races(self):
         races = self.driver.find_elements_by_xpath(
             '/html/body/div/div[2]/table/tbody/tr/td[position()<last()]/a'
@@ -61,8 +76,12 @@ class Scraper:
     def race_dict(self):
         data = self.get_race_data()
         data_dict = {'class': data[3].split(' - ')[0],
-                     'length': data[3].split(' - ')[1]}
-        print(data_dict)
+                     'length': data[3].split(' - ')[1],
+                     'going': data[5],
+                     'course': data[8],
+                     'prize': data[9],
+                     'pace': f'{data[-3]}/{data[-2]}/{data[-1]}'}
+        return data_dict
 
     def get_race_data(self):
         data = self.driver.find_elements_by_xpath(
@@ -114,11 +133,13 @@ class Scraper:
         i[-5] = 'L'
         return ''.join(i)
 
-    def __if_event(self):
+    def __if_event(self, link):
         event = self.driver.find_elements_by_xpath(
             '//div[@id="errorContainer"]'
         )
-        return bool(event)
+        abandoned = self.driver.current_url != link
+        print(self.driver.current_url)
+        return (bool(event) or bool(abandoned))
 
     def __create_date_list(self, days: int):
         start = datetime.datetime.today() - datetime.timedelta(days=1)
@@ -137,12 +158,17 @@ class Scraper:
     def __save_image(self, link, id):
         folder = os.path.join('Web-Scraping-Data-Pipeline',
                               'raw_data', id)
-        self.driver.get(link)
-        time.sleep(2)
-        img = self.driver.find_element_by_xpath(
-            '/html/body/img'
-        ).get_attribute('src')
-        urllib.request.urlretrieve(img, os.path.join(folder, '1.jpg'))
+        for tries in range(3):
+            try:
+                self.driver.get(link)
+                time.sleep(3)
+                img = self.driver.find_element_by_xpath(
+                    '/html/body/img'
+                ).get_attribute('src')
+                urllib.request.urlretrieve(img, os.path.join(folder, '1.jpg'))
+                break
+            except urllib.error.URLError:
+                print('URL error occured: ', tries)
         print(f'Saved image {id}')
         return
 
@@ -151,4 +177,4 @@ if __name__ == '__main__':
     URL = ('https://racing.hkjc.com/racing/information/English/Racing'
            '/LocalResults.aspx?RaceDate=2022/02/12&Racecourse=ST&RaceNo=2')
     scr = Scraper()
-    scr.scrape_dates(scr.create_date_links(4))
+    scr.scrape_dates(scr.create_date_links(20))
