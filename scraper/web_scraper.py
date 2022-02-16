@@ -15,14 +15,13 @@ class Scraper:
         self.chrome_options = Options()
         self.chrome_options.headless = True
         self.driver = webdriver.Chrome(options=self.chrome_options)
-        self.horse_links = set()
 
     def scrape_dates(self, links: list):
         for link in links:
             self.driver.get(link)
             time.sleep(3)
             print(f'Accessed {link}')
-            if self.if_event():
+            if self.__if_event():
                 print(f'No Event on {link}')
                 continue
             card_races = self.get_card_races()
@@ -37,7 +36,7 @@ class Scraper:
             self.driver.get(link)
             print(f'Accessed {link}')
             time.sleep(3)
-        self.scrape_race_data()
+        self.race_dict()
         scraped_json['image_link'] = self.get_image_link()
         scraped_json['id'] = scraped_json['image_link'][-16:-6]
         scraped_json['runners'] = self.runner_dict()
@@ -59,29 +58,34 @@ class Scraper:
         links = [race.get_attribute('href') for race in races]
         return links
 
-    def scrape_race_data(self):
+    def race_dict(self):
+        data = self.get_race_data()
+        data_dict = {'class': data[3].split(' - ')[0],
+                     'length': data[3].split(' - ')[1]}
+        print(data_dict)
+
+    def get_race_data(self):
         data = self.driver.find_elements_by_xpath(
             '/html/body/div/div[4]/table/tbody/tr/td'
         )
-        for i in data:
-            print(i.text)
-        return
+        data_text = [x.text for x in data]
+        return data_text
 
     def runner_dict(self):
         table = self.get_runner_table()
-        dict_runners = {'Place': table[0],
-                        'Number': table[1],
-                        'Name': table[2],
-                        'Jockey': table[3],
-                        'Trainer': table[4],
-                        'Actual Weight': table[5],
-                        'Declared Weight': table[6],
-                        'Draw': table[7],
-                        'Length Behind Winner': table[8],
-                        'Running Positions': table[9],
-                        'Finish Time': table[10],
-                        'Win Odds': table[11],
-                        'Links': self.get_runner_links()}
+        dict_runners = {'place': table[0],
+                        'number': table[1],
+                        'name': table[2],
+                        'jockey': table[3],
+                        'trainer': table[4],
+                        'actual_weight': table[5],
+                        'declared+weight': table[6],
+                        'draw': table[7],
+                        'length_behind_winner': table[8],
+                        'running_positions': table[9],
+                        'finish_time': table[10],
+                        'win_odds': table[11],
+                        'links': self.get_runner_links()}
         return dict_runners
 
     def get_runner_table(self):
@@ -110,15 +114,15 @@ class Scraper:
         i[-5] = 'L'
         return ''.join(i)
 
-    def if_event(self):
+    def __if_event(self):
         event = self.driver.find_elements_by_xpath(
             '//div[@id="errorContainer"]'
         )
         return bool(event)
 
     def __create_date_list(self, days: int):
-        today = datetime.datetime.today()
-        return [today - datetime.timedelta(days=x) for x in range(days)]
+        start = datetime.datetime.start() - datetime.timedelta(days=1)
+        return [start - datetime.timedelta(days=x) for x in range(days)]
 
     def __save_data(self, data: dict):
         folder = os.path.join('Web-Scraping-Data-Pipeline',
