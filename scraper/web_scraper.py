@@ -1,5 +1,7 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 import numpy as np
 import time
 import datetime
@@ -13,9 +15,10 @@ from uuid import uuid4
 
 class Scraper:
     def __init__(self):
+        s = Service(ChromeDriverManager().install())
         self.chrome_options = Options()
-        # self.chrome_options.headless = True
-        self.driver = webdriver.Chrome(options=self.chrome_options)
+        self.chrome_options.headless = True
+        self.driver = webdriver.Chrome(s, options=self.chrome_options)
 
     def scrape_dates(self, links: list):
         for link in links:
@@ -171,10 +174,3 @@ class Scraper:
                 print('URL error occured: ', tries)
         print(f'Saved image {id}')
         return
-
-
-if __name__ == '__main__':
-    URL = ('https://racing.hkjc.com/racing/information/English/Racing'
-           '/LocalResults.aspx?RaceDate=2022/02/12&Racecourse=ST&RaceNo=2')
-    scr = Scraper()
-    scr.scrape_dates(scr.create_date_links(20))
