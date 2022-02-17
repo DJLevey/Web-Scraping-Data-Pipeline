@@ -1,6 +1,7 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By
 from webdriver_manager.chrome import ChromeDriverManager
 import numpy as np
 import time
@@ -18,7 +19,8 @@ class Scraper:
         s = Service(ChromeDriverManager().install())
         self.chrome_options = Options()
         self.chrome_options.headless = True
-        self.driver = webdriver.Chrome(s, options=self.chrome_options)
+        self.driver = webdriver.Chrome(service=s, options=self.chrome_options)
+        self.driver.find_elements()
 
     def scrape_dates(self, links: list):
         for link in links:
@@ -59,10 +61,12 @@ class Scraper:
         return date_links
 
     def generate_id(self):
-        date = self.driver.find_element_by_xpath(
+        date = self.driver.find_element(
+            By.XPATH,
             '/html/body/div/div[3]/p[1]/span[1]'
         ).text.split('  ')[1].replace('/', '-')
-        race_number = self.driver.find_element_by_xpath(
+        race_number = self.driver.find_element(
+            By.XPATH,
             '/html/body/div/div[4]/table/thead/tr/td[1]'
         ).text.split(' ')[1]
         id = f'{date}-{race_number}'
@@ -70,7 +74,8 @@ class Scraper:
         return race_dict
 
     def get_card_races(self):
-        races = self.driver.find_elements_by_xpath(
+        races = self.driver.find_elements(
+            By.XPATH,
             '/html/body/div/div[2]/table/tbody/tr/td[position()<last()]/a'
         )
         links = [race.get_attribute('href') for race in races]
@@ -87,7 +92,8 @@ class Scraper:
         return data_dict
 
     def get_race_data(self):
-        data = self.driver.find_elements_by_xpath(
+        data = self.driver.find_elements(
+            By.XPATH,
             '/html/body/div/div[4]/table/tbody/tr/td'
         )
         data_text = [x.text for x in data]
@@ -111,7 +117,8 @@ class Scraper:
         return dict_runners
 
     def get_runner_table(self):
-        table = self.driver.find_elements_by_xpath(
+        table = self.driver.find_elements(
+            By.XPATH,
             '//table/tbody[@class="f_fs12"]/tr'
         )
         table = [self.get_runner(x) for x in table]
@@ -122,14 +129,16 @@ class Scraper:
         return [x.text for x in runner]
 
     def get_runner_links(self):
-        runners = self.driver.find_elements_by_xpath(
+        runners = self.driver.find_elements(
+            By.XPATH,
             '//table/tbody[@class="f_fs12"]/tr/td[3]/a'
         )
         links = [horse.get_attribute('href') for horse in runners]
         return links
 
     def get_image_link(self):
-        img_link = self.driver.find_element_by_xpath(
+        img_link = self.driver.find_element(
+            By.XPATH,
             '/html/body/div/div[6]/div[2]/div[1]/div/a/img'
         ).get_attribute('src')
         i = list(img_link)
@@ -137,7 +146,8 @@ class Scraper:
         return ''.join(i)
 
     def __if_event(self, link):
-        event = self.driver.find_elements_by_xpath(
+        event = self.driver.find_elements(
+            By.XPATH,
             '//div[@id="errorContainer"]'
         )
         abandoned = self.driver.current_url != link
@@ -148,7 +158,7 @@ class Scraper:
         start = datetime.datetime.today() - datetime.timedelta(days=1)
         return [start - datetime.timedelta(days=x) for x in range(days)]
 
-    def __save_data(self, data: dict):
+    def __save_data(self, data: dict) -> None:
         folder = os.path.join('Web-Scraping-Data-Pipeline',
                               'raw_data', data['id'])
         if not os.path.exists(folder):
@@ -156,7 +166,6 @@ class Scraper:
         with open(os.path.join(folder, 'data.json'), 'w') as f:
             json.dump(data, f, indent=4)
         self.__save_image(data['image_link'], data['id'])
-        return
 
     def __save_image(self, link, id):
         folder = os.path.join('Web-Scraping-Data-Pipeline',
@@ -165,12 +174,10 @@ class Scraper:
             try:
                 self.driver.get(link)
                 time.sleep(3)
-                img = self.driver.find_element_by_xpath(
-                    '/html/body/img'
-                ).get_attribute('src')
+                img = self.driver.find_element(
+                    By.XPATH, '/html/body/img').get_attribute('src')
                 urllib.request.urlretrieve(img, os.path.join(folder, '1.jpg'))
                 break
             except urllib.error.URLError:
                 print('URL error occured: ', tries)
         print(f'Saved image {id}')
-        return
