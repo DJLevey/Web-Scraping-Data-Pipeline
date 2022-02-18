@@ -21,18 +21,24 @@ class Scraper:
         self.chrome_options.headless = True
         self.driver = webdriver.Chrome(service=s, options=self.chrome_options)
         self.driver.find_elements()
+        self.retrieved_urls = Scraper.open_retrieved_url_list()
 
-    def scrape_dates(self, links: list):
+    def scrape_dates(self, links: list) -> None:
         for link in links:
+            if link in self.retrieved_urls:
+                print(f'Data Already Retrieved: {link}')
+                continue
             self.driver.get(link)
             time.sleep(2)
-            print(f'Accessed {link}')
             if self.__if_event(link):
                 print(f'No Event on {link}')
                 continue
             card_races = self.get_card_races()
             self.scrape_page(link)
             for race_link in card_races:
+                if race_link in self.retrieved_urls:
+                    print(f'Data Already Retrieved: {race_link}')
+                    continue
                 while True:
                     self.driver.get(race_link)
                     print(f'Accessed {race_link}')
@@ -41,6 +47,10 @@ class Scraper:
                         break
                     print(f'No Event loaded {race_link}')
                 self.scrape_page(race_link)
+                self.add_retrieved_urls(race_link)
+                print(f'Event Retrieved: {race_link}')
+            self.add_retrieved_urls(link)
+            print(f'Event Retrieved: {link}')
         return
 
     def scrape_page(self, link):
@@ -125,7 +135,7 @@ class Scraper:
         return np.array(table).T.tolist()
 
     def get_runner(self, row):
-        runner = row.find_elements_by_xpath('.//td')
+        runner = row.find_elements(By.XPATH, './/td')
         return [x.text for x in runner]
 
     def get_runner_links(self):
@@ -145,16 +155,31 @@ class Scraper:
         i[-5] = 'L'
         return ''.join(i)
 
-    def __if_event(self, link):
+    def add_retrieved_urls(self, url) -> None:
+        path = os.path.dirname(os.path.abspath(__file__))
+        with open(os.path.join(path, 'urls.txt'), 'a') as f:
+            f.write(url)
+            f.write('\n')
+        self.retrieved_urls.append(url)
+
+    def open_retrieved_url_list() -> list():
+        path = os.path.dirname(os.path.abspath(__file__))
+        list_of_urls = []
+        with open(os.path.join(path, 'urls.txt'), 'r') as f:
+            for url in f:
+                stripped_line = url.strip()
+                list_of_urls.append(stripped_line)
+        return list_of_urls
+
+    def __if_event(self, link) -> bool:
         event = self.driver.find_elements(
             By.XPATH,
             '//div[@id="errorContainer"]'
         )
         abandoned = self.driver.current_url != link
-        print(self.driver.current_url)
         return (bool(event) or bool(abandoned))
 
-    def __create_date_list(self, days: int):
+    def __create_date_list(self, days: int) -> list():
         start = datetime.datetime.today() - datetime.timedelta(days=1)
         return [start - datetime.timedelta(days=x) for x in range(days)]
 
