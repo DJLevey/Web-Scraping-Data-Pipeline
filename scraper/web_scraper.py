@@ -49,9 +49,7 @@ class Scraper:
                         break
                     print(f'No Event loaded {race_link}')
                 self.scrape_page(race_link)
-                self.add_retrieved_url(race_link)
                 print(f'Event Retrieved: {race_link}')
-            self.add_retrieved_url(link)
             print(f'Event Retrieved: {link}')
         return
 
@@ -158,20 +156,17 @@ class Scraper:
         i[-5] = 'L'
         return ''.join(i)
 
-    def add_retrieved_url(self, url) -> None:
-        path = os.path.dirname(os.path.abspath(__file__))
-        with open(os.path.join(path, 'urls.txt'), 'a') as f:
-            f.write(url)
-            f.write('\n')
-        self.retrieved_urls.append(url)
-
     def open_retrieved_url_list() -> list():
-        path = os.path.dirname(os.path.abspath(__file__))
+        path = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)), '../raw_data/')
         list_of_urls = []
-        with open(os.path.join(path, 'urls.txt'), 'r') as f:
-            for url in f:
-                stripped_line = url.strip()
-                list_of_urls.append(stripped_line)
+        for x in os.listdir(path):
+            sub_dir = os.path.join(path, x)
+            if os.path.isdir(sub_dir):
+                print(f'{sub_dir} is dir')
+                with open(os.path.join(sub_dir, 'data.json'), 'r') as f:
+                    list_of_urls.append(json.load(f)['url'])
+        print(list_of_urls)
         return list_of_urls
 
     def __if_event(self, link) -> bool:
@@ -187,15 +182,16 @@ class Scraper:
         return [start - datetime.timedelta(days=x) for x in range(days)]
 
     def __save_data(self, data: dict) -> None:
-        folder = os.path.join('raw_data', data['id'])
+        id = data['id']
+        folder = os.path.join(os.path.dirname(
+                            os.path.abspath(__file__)), f'../raw_data/{id}')
         if not os.path.exists(folder):
             os.makedirs(folder)
         with open(os.path.join(folder, 'data.json'), 'w') as f:
             json.dump(data, f, indent=4)
-        self.__save_image(data['image_link'], data['id'])
+        self.__save_image(folder, data['image_link'], id)
 
-    def __save_image(self, link, id) -> None:
-        folder = os.path.join('raw_data', id)
+    def __save_image(self, folder, link, id) -> None:
         for tries in range(3):
             try:
                 self.driver.get(link)
