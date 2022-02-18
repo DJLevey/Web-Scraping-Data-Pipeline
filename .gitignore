@@ -1,3 +1,4 @@
 /raw_data
 .dockerignore
 scraper/__pycache__/web_scraper.cpython-38.pyc
+scraper/urls.txt
