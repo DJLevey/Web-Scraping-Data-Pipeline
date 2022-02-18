@@ -17,9 +17,11 @@ from uuid import uuid4
 class Scraper:
     def __init__(self):
         s = Service(ChromeDriverManager().install())
-        self.chrome_options = Options()
-        self.chrome_options.headless = True
-        self.driver = webdriver.Chrome(service=s, options=self.chrome_options)
+        chrome_options = Options()
+        chrome_options.headless = True
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        self.driver = webdriver.Chrome(service=s, options=chrome_options)
         self.driver.find_elements()
         self.retrieved_urls = Scraper.open_retrieved_url_list()
 
@@ -47,13 +49,13 @@ class Scraper:
                         break
                     print(f'No Event loaded {race_link}')
                 self.scrape_page(race_link)
-                self.add_retrieved_urls(race_link)
+                self.add_retrieved_url(race_link)
                 print(f'Event Retrieved: {race_link}')
-            self.add_retrieved_urls(link)
+            self.add_retrieved_url(link)
             print(f'Event Retrieved: {link}')
         return
 
-    def scrape_page(self, link):
+    def scrape_page(self, link) -> None:
         scraped_json = {'uuid': str(uuid4())}
         scraped_json.update(self.generate_id())
         scraped_json.update(self.race_dict())
@@ -61,7 +63,7 @@ class Scraper:
         scraped_json['runners'] = self.runner_dict()
         self.__save_data(scraped_json)
 
-    def create_date_links(self, days):
+    def create_date_links(self, days=1) -> list:
         base_url = ('https://racing.hkjc.com/racing/information/'
                     'English/Racing/LocalResults.aspx?RaceDate=')
         dates = self.__create_date_list(days)
@@ -70,7 +72,7 @@ class Scraper:
                       f'{str(date.day).zfill(2)}' for date in dates]
         return date_links
 
-    def generate_id(self):
+    def generate_id(self) -> dict:
         date = self.driver.find_element(
             By.XPATH,
             '/html/body/div/div[3]/p[1]/span[1]'
@@ -83,7 +85,7 @@ class Scraper:
         race_dict = {'id': id, 'date': date, 'race_number': race_number}
         return race_dict
 
-    def get_card_races(self):
+    def get_card_races(self) -> list:
         races = self.driver.find_elements(
             By.XPATH,
             '/html/body/div/div[2]/table/tbody/tr/td[position()<last()]/a'
@@ -91,17 +93,18 @@ class Scraper:
         links = [race.get_attribute('href') for race in races]
         return links
 
-    def race_dict(self):
+    def race_dict(self) -> dict:
         data = self.get_race_data()
         data_dict = {'class': data[3].split(' - ')[0],
                      'length': data[3].split(' - ')[1],
                      'going': data[5],
                      'course': data[8],
                      'prize': data[9],
-                     'pace': f'{data[-3]}/{data[-2]}/{data[-1]}'}
+                     'pace': f'{data[-3]}/{data[-2]}/{data[-1]}',
+                     'url': self.driver.current_url}
         return data_dict
 
-    def get_race_data(self):
+    def get_race_data(self) -> list:
         data = self.driver.find_elements(
             By.XPATH,
             '/html/body/div/div[4]/table/tbody/tr/td'
@@ -109,7 +112,7 @@ class Scraper:
         data_text = [x.text for x in data]
         return data_text
 
-    def runner_dict(self):
+    def runner_dict(self) -> dict:
         table = self.get_runner_table()
         dict_runners = {'place': table[0],
                         'number': table[1],
@@ -126,7 +129,7 @@ class Scraper:
                         'links': self.get_runner_links()}
         return dict_runners
 
-    def get_runner_table(self):
+    def get_runner_table(self) -> list:
         table = self.driver.find_elements(
             By.XPATH,
             '//table/tbody[@class="f_fs12"]/tr'
@@ -134,11 +137,11 @@ class Scraper:
         table = [self.get_runner(x) for x in table]
         return np.array(table).T.tolist()
 
-    def get_runner(self, row):
+    def get_runner(self, row) -> list:
         runner = row.find_elements(By.XPATH, './/td')
         return [x.text for x in runner]
 
-    def get_runner_links(self):
+    def get_runner_links(self) -> list:
         runners = self.driver.find_elements(
             By.XPATH,
             '//table/tbody[@class="f_fs12"]/tr/td[3]/a'
@@ -146,7 +149,7 @@ class Scraper:
         links = [horse.get_attribute('href') for horse in runners]
         return links
 
-    def get_image_link(self):
+    def get_image_link(self) -> str:
         img_link = self.driver.find_element(
             By.XPATH,
             '/html/body/div/div[6]/div[2]/div[1]/div/a/img'
@@ -155,7 +158,7 @@ class Scraper:
         i[-5] = 'L'
         return ''.join(i)
 
-    def add_retrieved_urls(self, url) -> None:
+    def add_retrieved_url(self, url) -> None:
         path = os.path.dirname(os.path.abspath(__file__))
         with open(os.path.join(path, 'urls.txt'), 'a') as f:
             f.write(url)
@@ -184,17 +187,15 @@ class Scraper:
         return [start - datetime.timedelta(days=x) for x in range(days)]
 
     def __save_data(self, data: dict) -> None:
-        folder = os.path.join('Web-Scraping-Data-Pipeline',
-                              'raw_data', data['id'])
+        folder = os.path.join('raw_data', data['id'])
         if not os.path.exists(folder):
             os.makedirs(folder)
         with open(os.path.join(folder, 'data.json'), 'w') as f:
             json.dump(data, f, indent=4)
         self.__save_image(data['image_link'], data['id'])
 
-    def __save_image(self, link, id):
-        folder = os.path.join('Web-Scraping-Data-Pipeline',
-                              'raw_data', id)
+    def __save_image(self, link, id) -> None:
+        folder = os.path.join('raw_data', id)
         for tries in range(3):
             try:
                 self.driver.get(link)
