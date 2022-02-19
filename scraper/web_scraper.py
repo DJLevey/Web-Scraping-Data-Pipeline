@@ -195,11 +195,12 @@ class Scraper:
         for tries in range(3):
             try:
                 self.driver.get(link)
-                time.sleep(3)
+                time.sleep(2)
                 img = self.driver.find_element(
                     By.XPATH, '/html/body/img').get_attribute('src')
                 urllib.request.urlretrieve(img, os.path.join(folder, '1.jpg'))
                 break
             except urllib.error.URLError:
                 print('URL error occured: ', tries)
+                return
         print(f'Saved image {id}')
