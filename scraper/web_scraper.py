@@ -112,7 +112,8 @@ class Scraper:
 
     def runner_dict(self) -> dict:
         table = self.get_runner_table()
-        dict_runners = {'place': table[0],
+        dict_runners = {'uuid': uuid4(),
+                        'place': table[0],
                         'number': table[1],
                         'name': table[2],
                         'jockey': table[3],
@@ -130,7 +131,7 @@ class Scraper:
     def get_runner_table(self) -> list:
         table = self.driver.find_elements(
             By.XPATH,
-            '//table/tbody[@class="f_fs12"]/tr'
+            '/html/body/div/div[5]/table/tbody/tr'
         )
         table = [self.get_runner(x) for x in table]
         return np.array(table).T.tolist()
@@ -142,7 +143,7 @@ class Scraper:
     def get_runner_links(self) -> list:
         runners = self.driver.find_elements(
             By.XPATH,
-            '//table/tbody[@class="f_fs12"]/tr/td[3]/a'
+            '/html/body/div/div[5]/table/tbody/tr/td[3]/a'
         )
         links = [horse.get_attribute('href') for horse in runners]
         return links
@@ -183,24 +184,26 @@ class Scraper:
 
     def __save_data(self, data: dict) -> None:
         id = data['id']
-        folder = os.path.join(os.path.dirname(
-                            os.path.abspath(__file__)), f'../raw_data/{id}')
+        folder = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), f'../raw_data/{id}'
+            )
         if not os.path.exists(folder):
             os.makedirs(folder)
-        with open(os.path.join(folder, 'data.json'), 'w') as f:
+        with open(os.path.join(folder, f'{id}.json'), 'w') as f:
             json.dump(data, f, indent=4)
         self.__save_image(folder, data['image_link'], id)
 
-    def __save_image(self, folder, link, id) -> None:
+    def __save_image(self, folder, link, id) -> bool:
         for tries in range(3):
             try:
                 self.driver.get(link)
                 time.sleep(2)
                 img = self.driver.find_element(
                     By.XPATH, '/html/body/img').get_attribute('src')
-                urllib.request.urlretrieve(img, os.path.join(folder, '1.jpg'))
-                break
+                urllib.request.urlretrieve(
+                    img, os.path.join(folder, f'{id}.jpg')
+                    )
+                return True
             except urllib.error.URLError:
-                print('URL error occured: ', tries)
-                return
-        print(f'Saved image {id}')
+                print(f'URL error occured: {tries} attempts')
+        return False
