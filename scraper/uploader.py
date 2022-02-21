@@ -14,7 +14,7 @@ def upload_to_bucket(id: str, bucket):
         try:
             s3_client.upload_file(
                 f'{os.path.join(tmp, id)}.zip',
-                'aicorebucket828',
+                bucket,
                 f'{id}.zip')
         except ClientError as e:
             logging.error(e)
