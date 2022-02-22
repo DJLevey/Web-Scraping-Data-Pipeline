@@ -12,6 +12,7 @@ import urllib
 import urllib.request
 import urllib.error
 from uuid import uuid4
+from uploader import upload_to_bucket_by_id
 
 '''Hong Kong Jockey Club Web-Scraper
 
@@ -40,8 +41,30 @@ class Scraper(object):
         chrome_options.add_argument('--disable-dev-shm-usage')
         self.driver = webdriver.Chrome(service=s, options=chrome_options)
         self.driver.find_elements()
-        self.retrieved_urls = Scraper.open_retrieved_url_list()
-        self.raw_data_path = os.path.join(os.getcwd(), '/raw_data')
+        self.raw_data_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), '../raw_data/')
+        self.retrieved_urls = self.open_retrieved_url_list()
+
+    def open_retrieved_url_list(self) -> list():
+        '''Get list of previously scraped URLs
+
+        Iterates through the raw_data floder andr etrieves a list of
+        previously scraped URLs from the json files.
+
+        Returns:
+            list (str): A list of URLs.
+        '''
+        list_of_urls = []
+        for x in os.listdir(self.raw_data_path):
+            sub_dir = os.path.join(self.raw_data_path, x)
+            if os.path.isdir(sub_dir):
+                for fname in os.listdir(sub_dir):
+                    print(fname)
+                    if fname.endswith('.json'):
+                        with open(os.path.join(sub_dir, fname), 'r') as f:
+                            list_of_urls.append(json.load(f)['url'])
+        print(list_of_urls)
+        return list_of_urls
 
     def scrape_dates(self, links: list) -> None:
         '''Scrapes website for along a list of dates.
@@ -56,16 +79,14 @@ class Scraper(object):
             links: a list of urls to the first race of a day.
         '''
         for link in links:
-            if link in self.retrieved_urls:
-                print(f'Data Already Retrieved: {link}')
-                continue
             self.driver.get(link)
             time.sleep(2)
             if self._if_event(link):
                 print(f'No Event on {link}')
                 continue
             card_races = self.get_card_races()
-            self.scrape_page()
+            if link not in self.retrieved_urls:
+                self.scrape_page()
             for race_link in card_races:
                 if race_link in self.retrieved_urls:
                     print(f'Data Already Retrieved: {race_link}')
@@ -81,20 +102,21 @@ class Scraper(object):
         return
 
     def scrape_page(self) -> None:
-        '''Scrapes current webpage to a dictionary.
+        '''Scrapes current webpage to a dictionary.-
 
         Creates a dictionary with a unique identifier and
         scrapes the page for data relevant to the race. Then
         saves them to a JSON file.
-
         '''
         scraped_json = {'uuid': str(uuid4())}
-        scraped_json.update(self._())
+        scraped_json.update(self._generate_id())
         scraped_json.update(self.race_dict())
         scraped_json['image_link'] = self._get_image_link()
         scraped_json['runners'] = self.runner_dict()
         self._save_data(scraped_json)
         self._save_image(scraped_json['image_link'], scraped_json['id'])
+        if upload_to_bucket_by_id(scraped_json['id']):
+            print('files uploaded to bucket')
 
     def create_date_links(self, days=1) -> list:
         ''' Creates a list of URLs to be used by the scrape_page method
@@ -143,7 +165,7 @@ class Scraper(object):
         return race_dict
 
     def get_card_races(self) -> list:
-        '''Get other daily races.
+        '''Get daily races from first page.
 
         Searches the current page of other races taking place on that date.
 
@@ -216,7 +238,7 @@ class Scraper(object):
                         'running_positions': table[9],
                         'finish_time': table[10],
                         'win_odds': table[11],
-                        'links': self.get_runner_links()}
+                        'links': self._get_runner_links()}
         return dict_runners
 
     def _get_runner_table(self) -> list:
@@ -280,24 +302,6 @@ class Scraper(object):
         i[-5] = 'L'
         return ''.join(i)
 
-    def open_retrieved_url_list() -> list():
-        '''Get list of previously scraped URLs
-
-        Retrieves a list of previously scraped URLs from the raw data.
-
-        Returns:
-            list (str): A list of URLs.
-        '''
-        path = os.path.join(
-                os.path.dirname(os.path.abspath(__file__)), '../raw_data/')
-        list_of_urls = []
-        for x in os.listdir(path):
-            sub_dir = os.path.join(path, x)
-            if os.path.isdir(sub_dir):
-                with open(os.path.join(sub_dir, '*.json'), 'r') as f:
-                    list_of_urls.append(json.load(f)['url'])
-        return list_of_urls
-
     def _if_event(self, link) -> bool:
         '''Checks the current page for data to scrape
 
@@ -344,7 +348,7 @@ class Scraper(object):
             data (dict): Dictionary with "id" key, to be saved to JSON.
         '''
         id = data['id']
-        folder = os.path.join(self._get_data_folder(), id)
+        folder = os.path.join((self.raw_data_path), id)
         if not os.path.exists(folder):
             os.makedirs(folder)
         with open(os.path.join(folder, f'{id}.json'), 'w') as f:
@@ -362,7 +366,7 @@ class Scraper(object):
         Returns:
             bool: True if image has been saved with urllib.
         '''
-        folder = os.path.join(self._get_data_folder(), id)
+        folder = os.path.join((self.raw_data_path), id)
         if not os.path.exists(folder):
             os.makedirs(folder)
         for tries in range(3):
