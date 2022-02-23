@@ -59,11 +59,9 @@ class Scraper(object):
             sub_dir = os.path.join(self.raw_data_path, x)
             if os.path.isdir(sub_dir):
                 for fname in os.listdir(sub_dir):
-                    print(fname)
                     if fname.endswith('.json'):
                         with open(os.path.join(sub_dir, fname), 'r') as f:
                             list_of_urls.append(json.load(f)['url'])
-        print(list_of_urls)
         return list_of_urls
 
     def scrape_dates(self, links: list) -> None:
