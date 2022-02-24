@@ -4,3 +4,4 @@ scraper/urls.txt
 scraper/test.ipynb
 __pycache__/
 *.py[cod]
+config.ini
