@@ -186,6 +186,16 @@ def _runner_insert(engine: Engine, runners: dict) -> None:
 
 
 def _connect_to_rds(db: dict) -> Engine:
+    '''Create SQLALchemy Engine
+
+    Creates an Engine from a dictionary.
+
+    Args:
+        db (dict): A dictionary parsed from the config file
+            with parameters for the RDS.
+    Returns:
+        Engine: SQLAlchemy Engine to connect to the RDS.
+    '''
     engine = create_engine(
         f"{db['DATABASE_TYPE']}+{db['DBAPI']}://{db['USER']}"
         f":{db['PASSWORD']}@{db['ENDPOINT']}:{db['PORT']}"
@@ -194,7 +204,14 @@ def _connect_to_rds(db: dict) -> Engine:
     return engine
 
 
-def _create_race_table(engine: Connection):
+def _create_race_table(conn: Connection):
+    ''' Create race table if none exists.
+
+    Table used to store the data for each race.
+
+    Args:
+        conn (Connection): SQLAlchemy connection to the RDS.
+    '''
     meta = MetaData()
     Table(
         'race', meta,
@@ -212,10 +229,17 @@ def _create_race_table(engine: Connection):
         Column('url', String, nullable=False),
         Column('image_link', String, nullable=False)
     )
-    meta.create_all(engine)
+    meta.create_all(conn)
 
 
-def _create_runner_table(engine: Connection) -> None:
+def _create_runner_table(conn: Connection) -> None:
+    ''' Create runner table if none exists.
+
+    Table used to store the horses runs.
+
+    Args:
+        conn (Connection): SQLAlchemy connection to the RDS.
+    '''
     meta = MetaData()
     Table(
         'runner', meta,
@@ -236,17 +260,20 @@ def _create_runner_table(engine: Connection) -> None:
         Column('win_odds', String, nullable=False),
         Column('url', String, nullable=False)
     )
-    meta.create_all(engine)
+    meta.create_all(conn)
 
 
-def _create_no_event_table(engine: Connection) -> None:
+def _create_no_event_table(conn: Connection) -> None:
     ''' Create no_event table if none exists.
 
     Table used to list urls with no event on that date.
+
+    Args:
+        conn (Connection): SQLAlchemy connection to the RDS.
     '''
     meta = MetaData()
     Table(
         'no_event', meta,
         Column('url', String, primary_key=True)
     )
-    meta.create_all(engine)
+    meta.create_all(conn)
