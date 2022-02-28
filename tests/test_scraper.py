@@ -21,6 +21,8 @@ class ScraperTest(unittest.TestCase):
         self.assertIsInstance(dates[0], str)
         dates = scr.create_date_links(5)
         self.assertTrue(len(dates) == 5)
+        with self.assertRaises(TypeError):
+            dates = scr.create_date_links('f')
 
 
 if __name__ == '__main__':

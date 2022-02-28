@@ -12,7 +12,9 @@ import urllib
 import urllib.request
 import urllib.error
 from uuid import uuid4
-from uploader import upload_to_bucket_by_id
+from uploader import upload_to_bucket_by_id, upload_to_rds_by_id
+from uploader import get_retrieved_urls
+
 
 '''Hong Kong Jockey Club Web-Scraper
 
@@ -43,28 +45,8 @@ class Scraper(object):
         self.driver.find_elements()
         self.raw_data_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), '../raw_data/')
-        self.retrieved_urls = self.open_retrieved_url_list()
 
-    def open_retrieved_url_list(self) -> list():
-        '''Get list of previously scraped URLs
-
-        Iterates through the raw_data floder andr etrieves a list of
-        previously scraped URLs from the json files.
-
-        Returns:
-            list (str): A list of URLs.
-        '''
-        list_of_urls = []
-        for x in os.listdir(self.raw_data_path):
-            sub_dir = os.path.join(self.raw_data_path, x)
-            if os.path.isdir(sub_dir):
-                for fname in os.listdir(sub_dir):
-                    if fname.endswith('.json'):
-                        with open(os.path.join(sub_dir, fname), 'r') as f:
-                            list_of_urls.append(json.load(f)['url'])
-        return list_of_urls
-
-    def scrape_dates(self, links: list) -> None:
+    def scrape_dates(self, links: list, db: dict, bucket: str) -> None:
         '''Scrapes website for along a list of dates.
 
         Iterates throuch a list of urls, created from dates, and
@@ -76,6 +58,7 @@ class Scraper(object):
         Args:
             links: a list of urls to the first race of a day.
         '''
+        retrieved_urls = get_retrieved_urls(db)
         for link in links:
             self.driver.get(link)
             time.sleep(2)
@@ -83,10 +66,10 @@ class Scraper(object):
                 print(f'No Event on {link}')
                 continue
             card_races = self.get_card_races()
-            if link not in self.retrieved_urls:
-                self.scrape_page()
+            if link not in retrieved_urls:
+                self.scrape_page(db, bucket)
             for race_link in card_races:
-                if race_link in self.retrieved_urls:
+                if race_link in retrieved_urls:
                     print(f'Data Already Retrieved: {race_link}')
                     continue
                 while True:
@@ -96,10 +79,10 @@ class Scraper(object):
                     if not self._if_event(race_link):
                         break
                     print(f'No Event loaded {race_link}')
-                self.scrape_page()
+                self.scrape_page(db, bucket)
         return
 
-    def scrape_page(self) -> None:
+    def scrape_page(self, db: dict, bucket: str) -> None:
         '''Scrapes current webpage to a dictionary.-
 
         Creates a dictionary with a unique identifier and
@@ -111,10 +94,13 @@ class Scraper(object):
         scraped_json.update(self.race_dict())
         scraped_json['image_link'] = self._get_image_link()
         scraped_json['runners'] = self.runner_dict()
+        scraped_json['runners']['race_id'] =   \
+            [scraped_json['race_id'] for x in
+                range(len(scraped_json['runners']['url']))]
         self._save_data(scraped_json)
-        self._save_image(scraped_json['image_link'], scraped_json['id'])
-        if upload_to_bucket_by_id(scraped_json['id']):
-            print('files uploaded to bucket')
+        self._save_image(scraped_json['image_link'], scraped_json['race_id'])
+        upload_to_rds_by_id(scraped_json['race_id'], db)
+        upload_to_bucket_by_id(scraped_json['race_id'], bucket)
 
     def create_date_links(self, days=1) -> list:
         ''' Creates a list of URLs to be used by the scrape_page method
@@ -153,13 +139,17 @@ class Scraper(object):
         date = self.driver.find_element(
             By.XPATH,
             '/html/body/div/div[3]/p[1]/span[1]'
-        ).text.split('  ')[1].replace('/', '-')
+        ).text.split('  ')[1]
         race_number = self.driver.find_element(
             By.XPATH,
             '/html/body/div/div[4]/table/thead/tr/td[1]'
         ).text.split(' ')[1]
-        id = f'{date}-{race_number}'
-        race_dict = {'id': id, 'date': date, 'race_number': race_number}
+        race_id = date.replace('/', '')+f'-{race_number}'
+        race_dict = {
+            'race_id': race_id,
+            'date': date,
+            'race_number': race_number
+            }
         return race_dict
 
     def get_card_races(self) -> list:
@@ -188,10 +178,10 @@ class Scraper(object):
         '''
         data = self.get_race_data()
         data_dict = {'class': data[3].split(' - ')[0],
-                     'length': data[3].split(' - ')[1],
+                     'length': int(data[3].split(' - ')[1][:-1]),
                      'going': data[5],
-                     'course': data[8],
-                     'prize': data[9],
+                     'course': data[8].replace('"', ''),
+                     'prize': int(data[9].split(' ')[1].replace(',', '')),
                      'pace': f'{data[-3]}/{data[-2]}/{data[-1]}',
                      'url': self.driver.current_url}
         return data_dict
@@ -213,7 +203,7 @@ class Scraper(object):
         return data_text
 
     def runner_dict(self) -> dict:
-        '''Creates a dictionary for each runner.
+        '''Creates a dictionary for all runners in a race.
 
         Calls _get_runner_table to scrape the current page for all of the
         runners in the race, and creates a dictionary with the details
@@ -223,20 +213,22 @@ class Scraper(object):
             dict: A dictionary of runner details.
         '''
         table = self._get_runner_table()
-        dict_runners = {'uuid': str(uuid4()),
-                        'place': table[0],
-                        'number': table[1],
-                        'name': table[2],
+        dict_runners = {'uuid': [str(uuid4()) for x in range(len(table[0]))],
+                        'race_id': [],
+                        'horse_id': [x.split('(')[1][:-1] for x in table[2]],
+                        'place': [x.strip(' ') for x in table[0]],
+                        'number': [x.strip(' ') for x in table[1]],
+                        'name': [x.split('(')[0] for x in table[2]],
                         'jockey': table[3],
                         'trainer': table[4],
                         'actual_weight': table[5],
-                        'declared+weight': table[6],
-                        'draw': table[7],
+                        'declared_weight': table[6],
+                        'draw': [x.strip(' ') for x in table[7]],
                         'length_behind_winner': table[8],
                         'running_positions': table[9],
                         'finish_time': table[10],
                         'win_odds': table[11],
-                        'links': self._get_runner_links()}
+                        'url': self._get_runner_links()}
         return dict_runners
 
     def _get_runner_table(self) -> list:
@@ -345,7 +337,7 @@ class Scraper(object):
         Args:
             data (dict): Dictionary with "id" key, to be saved to JSON.
         '''
-        id = data['id']
+        id = data['race_id']
         folder = os.path.join((self.raw_data_path), id)
         if not os.path.exists(folder):
             os.makedirs(folder)
