@@ -5,3 +5,4 @@ scraper/test.ipynb
 __pycache__/
 *.py[cod]
 config.ini
+webscraper.tar
