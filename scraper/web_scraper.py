@@ -47,6 +47,7 @@ class Scraper(object):
         self.driver.find_elements()
         self.raw_data_path = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), '../raw_data/')
+        self.sleep_time = 3
 
     def scrape_dates(self, links: list, db: dict, bucket: str) -> None:
         '''Scrapes website for along a list of dates.
@@ -70,7 +71,7 @@ class Scraper(object):
                 print(f'No Event on {link}')
                 continue
             self.driver.get(link)
-            time.sleep(2)
+            time.sleep(self.sleep_time)
             if self._if_event(link):
                 print(f'No Event on {link}')
                 no_event_insert(db, link)
@@ -87,7 +88,7 @@ class Scraper(object):
                 while True:
                     self.driver.get(race_link)
                     print(f'Accessed {race_link}')
-                    time.sleep(2)
+                    time.sleep(self.sleep_time)
                     if not self._if_event(race_link):
                         break
                     print(f'No Event loaded {race_link}')
@@ -386,7 +387,7 @@ class Scraper(object):
         for tries in range(3):
             try:
                 self.driver.get(link)
-                time.sleep(2)
+                time.sleep(self.sleep_time)
                 img = self.driver.find_element(
                     By.XPATH, '/html/body/img').get_attribute('src')
                 urllib.request.urlretrieve(
@@ -394,5 +395,6 @@ class Scraper(object):
                     )
                 return True
             except urllib.error.URLError:
-                print(f'URL error occured: {tries} attempts')
+                print(f'URL error occured: {tries+1} attempts')
+        print(f'Unable to retrieve picture: {id}')
         return False
