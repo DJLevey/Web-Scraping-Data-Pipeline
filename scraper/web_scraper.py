@@ -25,7 +25,8 @@ class Scraper(object):
     '''Scraper Class
 
         This class is used to scrape the Hong Kong Jockey Club website
-        for all race results across a range of dates, and store the raw data locally.
+        for all race results across a range of dates, and store the raw data
+        locally.
 
         Example usage:
 
