@@ -13,20 +13,29 @@ import urllib.request
 import urllib.error
 from uuid import uuid4
 from uploader import (
-    no_event_insert, upload_to_bucket_by_id, upload_to_rds_by_id,
-    get_retrieved_urls, get_no_event_urls
-    )
-
-
-'''Hong Kong Jockey Club Web-Scraper
-
-
-'''
+                    no_event_insert,
+                    upload_to_bucket_by_id,
+                    upload_to_rds_by_id,
+                    get_retrieved_urls,
+                    get_no_event_urls
+                    )
 
 
 class Scraper(object):
     '''Scraper Class
 
+        This class is used to scrape the Hong Kong Jockey Club website
+        for all race results across a range of dates, and store the raw data locally.
+
+        Example usage:
+
+            scraper = Scraper()
+            dates = scr.create_date_links(days=number_of_dates)
+            scraper.scrape_dates(
+                dates,
+                database_dict,
+                s3_bucket_name
+            )
     '''
 
     def __init__(self):
@@ -63,6 +72,15 @@ class Scraper(object):
             db (dict): Dict containing parameters used in building an
                 SQLAlchemy Engine.
             bucket (str): The name of the S3 bucket.
+
+        db keys:
+            USER: Username
+            PASSWORD: Password
+            ENDPOINT: Database host (EC2 Address)
+            PORT: Port number
+            DATABASE: Database name
+            DATABASE_TYPE: Database management system (postgresql)
+            DBAPI: Database API (psycopg2)
         '''
         retrieved_urls = get_retrieved_urls(db)
         no_event_urls = get_no_event_urls(db)
