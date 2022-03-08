@@ -157,6 +157,14 @@ def no_event_insert(db: dict, url: str) -> None:
 
 
 def _race_insert(engine: Engine, race: dict) -> None:
+    '''Insert rows to race table
+
+    Creates the race table if none exists, then inserts a row.
+
+    Params:
+        engine (Engine): SQLAlchemy Engine to connect to the RDS.
+        race (dict): A dictionary of all the runners in a given race.
+    '''
     if 'race' not in engine.table_names():
         _create_race_table(engine)
     race = {x: [y] for x, y in race.items()}
@@ -172,6 +180,14 @@ def _race_insert(engine: Engine, race: dict) -> None:
 
 
 def _runner_insert(engine: Engine, runners: dict) -> None:
+    '''Insert rows to runner table
+
+    Creates the runner table if none exists, then inserts rows.
+
+    Params:
+        engine (Engine): SQLAlchemy Engine to connect to the RDS.
+        runners (dict): A dictionary of all the runners in a given race.
+    '''
     if 'runner' not in engine.table_names():
         _create_runner_table(engine)
     runners_dataframe = pd.DataFrame().from_dict(runners)
@@ -235,7 +251,7 @@ def _create_race_table(conn: Connection):
 def _create_runner_table(conn: Connection) -> None:
     ''' Create runner table if none exists.
 
-    Table used to store the horses runs.
+    Table used to store a horses participation in an event.
 
     Args:
         conn (Connection): SQLAlchemy connection to the RDS.
