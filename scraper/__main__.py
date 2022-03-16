@@ -8,7 +8,7 @@ if __name__ == '__main__':
             os.path.dirname(os.path.abspath(__file__)), '../config.ini')
     config.read(f)
     try:
-        num_dates = os.getenv('HISTORIC_DATES', default=1)
+        num_dates = int(os.getenv('HISTORIC_DATES', default=1))
     except TypeError:
         num_dates = 1
     scr = Scraper()
