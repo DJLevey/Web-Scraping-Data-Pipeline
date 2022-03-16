@@ -7,7 +7,10 @@ if __name__ == '__main__':
     f = os.path.join(
             os.path.dirname(os.path.abspath(__file__)), '../config.ini')
     config.read(f)
-    num_dates = os.getenv('HISTORIC_DATES', default=1)
+    try:
+        num_dates = os.getenv('HISTORIC_DATES', default=1)
+    except TypeError:
+        num_dates = 1
     scr = Scraper()
     scr.scrape_dates(
             scr.create_date_links(days=num_dates),
