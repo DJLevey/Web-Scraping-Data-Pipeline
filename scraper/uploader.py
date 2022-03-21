@@ -41,24 +41,8 @@ def upload_to_bucket_by_id(id: str, bucket: str) -> bool:
                 )
             except ClientError as e:
                 print(e)
-                return False
-        return True
     print('Id not found.')
     return False
-
-
-def upload_folder_to_bucket(bucket: str) -> None:
-    ''' Uploads entire raw data folder to bucket
-
-    Iterated through every subfolder, then calls upload_to_bucket_by_id
-
-    Args:
-        bucket: The name of the S3 bucket.
-    '''
-    folder = os.path.join(
-            os.path.dirname(os.path.abspath(__file__)), '../raw_data/')
-    for x in os.listdir(folder):
-        upload_to_bucket_by_id(x, bucket)
 
 
 def upload_to_rds_by_id(id: str, db: dict) -> bool:
