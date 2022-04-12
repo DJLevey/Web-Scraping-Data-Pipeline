@@ -1,11 +1,11 @@
-import sys
-sys.path.append('..')
-sys.path.append('../scraper')
-from scraper.web_scraper import Scraper
 import unittest
 import configparser
-import os
 from selenium import webdriver
+import sys
+import os
+sys.path.append('..')
+sys.path.append('../scraper')
+from scraper.web_scraper import Scraper  # noqa: E402
 
 
 class ScraperTest(unittest.TestCase):

@@ -24,19 +24,19 @@ from uploader import (
 class Scraper(object):
     '''Scraper Class
 
-        This class is used to scrape the Hong Kong Jockey Club website
-        for all race results across a range of dates, and store the raw data
-        locally.
+    This class is used to scrape the Hong Kong Jockey Club website
+    for all race results across a range of dates, and store the raw data
+    locally.
 
-        Example usage:
+    Example usage:
 
-            scraper = Scraper()
-            dates = scr.create_date_links(days=number_of_dates)
-            scraper.scrape_dates(
-                dates,
-                database_dict,
-                s3_bucket_name
-            )
+        scraper = Scraper()
+        dates = scr.create_date_links(days=number_of_dates)
+        scraper.scrape_dates(
+            dates,
+            database_dict,
+            s3_bucket_name
+        )
     '''
 
     def __init__(self):
