@@ -1,3 +1,6 @@
+import sys
+sys.path.append('..')
+sys.path.append('../scraper')
 from scraper.web_scraper import Scraper
 import unittest
 import configparser
@@ -30,7 +33,7 @@ class ScraperTest(unittest.TestCase):
         scr = Scraper()
         with self.assertRaises(ValueError):
             scr.scrape_dates(
-                ['bad_url.com'],
+                ['bad_url'],
                 config['RDS'],
                 config['S3']['bucket']
             )
