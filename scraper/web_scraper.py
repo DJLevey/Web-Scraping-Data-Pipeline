@@ -84,12 +84,14 @@ class Scraper(object):
             DBAPI: Database API (psycopg2)
         '''
         try:
+            print(links)
             base_url = ('https://racing.hkjc.com/racing/information/'
                         'English/Racing/LocalResults.aspx?RaceDate=')
             if not all([url.startswith(base_url) for url in links]):
                 raise ValueError('Invalid URL found.')
         except ValueError as e:
             print(e)
+            raise
         retrieved_urls = get_retrieved_urls(db)
         no_event_urls = get_no_event_urls(db)
         for link in links:
