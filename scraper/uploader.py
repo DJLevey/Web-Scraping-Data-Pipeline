@@ -39,8 +39,8 @@ def upload_to_bucket_by_id(id: str, bucket: str) -> bool:
                     bucket,
                     os.path.split(x)[1]
                 )
-            except ClientError as e:
-                print(e)
+            except ClientError:
+                raise
     print('Id not found.')
     return False
 
@@ -158,8 +158,8 @@ def _race_insert(engine: Engine, race: dict) -> None:
         race_dataframe.to_sql(
             'race', conn, if_exists='append', index=False
             )
-    except IntegrityError as e:
-        print(e)
+    except IntegrityError:
+        raise
     conn.close()
 
 
@@ -180,8 +180,8 @@ def _runner_insert(engine: Engine, runners: dict) -> None:
         runners_dataframe.to_sql(
             'runner', conn, if_exists='append', index=False
             )
-    except IntegrityError as e:
-        print(e)
+    except IntegrityError:
+        raise
     conn.close()
 
 
