@@ -1,4 +1,9 @@
-from scraper.uploader import get_no_event_urls, get_retrieved_urls
+from scraper.uploader import (
+                        get_no_event_urls,
+                        get_retrieved_urls,
+                        _connect_to_rds
+                        )
+from sqlalchemy.engine.base import Engine
 import unittest
 import configparser
 import os
@@ -21,6 +26,16 @@ class UploaderTest(unittest.TestCase):
         config.read(f)
         list_of_urls = get_no_event_urls(config['RDS'])
         self.assertIsInstance(list_of_urls, list)
+
+    def test__connect_to_rds(self):
+        config = configparser.ConfigParser()
+        f = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), '../config.ini')
+        config.read(f)
+        engine = _connect_to_rds(config['RDS'])
+        self.assertIsInstance(engine, Engine)
+        con = engine.connect()
+        self.assertIsInstance(con.nano)
 
 
 if __name__ == '__main__':
