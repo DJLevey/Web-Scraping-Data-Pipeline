@@ -1,12 +1,15 @@
-from scraper.uploader import (
+from sqlalchemy.engine.base import Engine
+import unittest
+import configparser
+import sys
+import os
+sys.path.append('..')
+sys.path.append('../scraper')
+from scraper.uploader import (  # noqa: E402
                         get_no_event_urls,
                         get_retrieved_urls,
                         _connect_to_rds
                         )
-from sqlalchemy.engine.base import Engine
-import unittest
-import configparser
-import os
 
 
 class UploaderTest(unittest.TestCase):
