@@ -39,6 +39,7 @@ def upload_to_bucket_by_id(id: str, bucket: str) -> bool:
                     bucket,
                     os.path.split(x)[1]
                 )
+                return True
             except ClientError:
                 raise
     print('Id not found.')
